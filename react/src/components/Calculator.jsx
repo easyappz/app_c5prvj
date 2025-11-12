@@ -1,160 +1,207 @@
-import React, { useEffect, useState } from 'react';
-import '../styles/iphone-calculator.css';
+import React, { useEffect, useMemo, useState } from 'react';
 
 function formatNumber(value) {
-  if (!isFinite(value)) return 'Error';
-  const maxDigits = 12;
-  const abs = Math.abs(value);
-  if (abs !== 0 && (abs >= 10 ** maxDigits || abs < 10 ** -6)) {
-    return value.toExponential(6).replace('+', '');
+  if (value === 'Infinity' || value === '-Infinity' || value === 'NaN') return 'Ошибка';
+  const str = String(value);
+  // Avoid scientific notation for small/large numbers when possible
+  if (str.includes('e') || str.includes('E')) {
+    return Number(value).toString();
   }
-  let s = String(Math.round(value * 1e10) / 1e10);
-  if (s.includes('.') && !s.includes('e')) {
-    s = s.replace(/\.0+$/, '').replace(/(\.[0-9]*?)0+$/, '$1');
-  }
-  if (s.length > maxDigits && !s.includes('e')) {
-    s = Number(value).toPrecision(10).replace('+', '');
-  }
-  return s;
+  return str;
 }
 
-function Calculator() {
+function compute(a, b, op) {
+  const x = Number(a);
+  const y = Number(b);
+  if (op === '+') return x + y;
+  if (op === '−') return x - y; // visually like iPhone minus
+  if (op === '×') return x * y;
+  if (op === '÷') return y === 0 ? 'Infinity' : x / y;
+  return y;
+}
+
+export default function Calculator() {
   const [display, setDisplay] = useState('0');
-  const [firstOperand, setFirstOperand] = useState(null);
-  const [operator, setOperator] = useState(null);
-  const [waitingForSecond, setWaitingForSecond] = useState(false);
+  const [prev, setPrev] = useState(null); // previous value
+  const [op, setOp] = useState(null); // current operator
+  const [overwrite, setOverwrite] = useState(true); // when true, next digit replaces display
 
-  useEffect(() => {
-    document.title = 'Калькулятор';
-  }, []);
+  // Dynamic font size similar to iPhone fitting
+  const fontSize = useMemo(() => {
+    const len = String(display).length;
+    if (len <= 6) return 64;
+    if (len <= 9) return 48;
+    if (len <= 12) return 34;
+    return 28;
+  }, [display]);
 
-  const inputDigit = (digit) => {
-    if (waitingForSecond) {
-      setDisplay(String(digit));
-      setWaitingForSecond(false);
+  const onClear = () => {
+    if (display !== '0') {
+      setDisplay('0');
+      setOverwrite(true);
       return;
     }
-    setDisplay((prev) => (prev === '0' ? String(digit) : prev + String(digit)));
-  };
-
-  const inputDecimal = () => {
-    if (waitingForSecond) {
-      setDisplay('0.');
-      setWaitingForSecond(false);
-      return;
-    }
-    if (!display.includes('.')) {
-      setDisplay(display + '.');
-    }
-  };
-
-  const clearAll = () => {
+    // Full reset (AC)
     setDisplay('0');
-    setFirstOperand(null);
-    setOperator(null);
-    setWaitingForSecond(false);
+    setPrev(null);
+    setOp(null);
+    setOverwrite(true);
   };
 
-  const toggleSign = () => {
+  const onToggleSign = () => {
     if (display === '0') return;
     if (display.startsWith('-')) setDisplay(display.slice(1));
     else setDisplay('-' + display);
   };
 
-  const percent = () => {
-    const value = parseFloat(display);
-    if (isNaN(value)) return;
-    const result = value / 100;
-    setDisplay(formatNumber(result));
+  const onPercent = () => {
+    const num = Number(display);
+    const val = num / 100;
+    setDisplay(formatNumber(val));
+    setOverwrite(true);
   };
 
-  const performCalculation = (a, op, b) => {
-    switch (op) {
-      case '+':
-        return a + b;
-      case '-':
-        return a - b;
-      case '*':
-        return a * b;
-      case '/':
-        return b === 0 ? Infinity : a / b;
-      default:
-        return b;
+  const inputDigit = (d) => {
+    if (overwrite) {
+      setDisplay(String(d));
+      setOverwrite(false);
+    } else {
+      if (display === '0') setDisplay(String(d));
+      else setDisplay(display + String(d));
     }
+  };
+
+  const inputDot = () => {
+    if (overwrite) {
+      setDisplay('0.');
+      setOverwrite(false);
+      return;
+    }
+    if (!display.includes('.')) setDisplay(display + '.');
   };
 
   const chooseOperator = (nextOp) => {
-    const inputVal = parseFloat(display);
-    if (firstOperand === null) {
-      setFirstOperand(inputVal);
-    } else if (operator && !waitingForSecond) {
-      const result = performCalculation(firstOperand, operator, inputVal);
-      setFirstOperand(result);
+    if (op && !overwrite) {
+      // Compute immediately for chained operations
+      const result = compute(prev ?? display, display, op);
+      setPrev(String(result));
       setDisplay(formatNumber(result));
+    } else {
+      setPrev(display);
     }
-    setOperator(nextOp);
-    setWaitingForSecond(true);
+    setOp(nextOp);
+    setOverwrite(true);
   };
 
-  const equals = () => {
-    if (operator === null || waitingForSecond) return;
-    const inputVal = parseFloat(display);
-    const result = performCalculation(firstOperand ?? 0, operator, inputVal);
+  const onEquals = () => {
+    if (op == null || prev == null) return;
+    const result = compute(prev, display, op);
     setDisplay(formatNumber(result));
-    setFirstOperand(result);
-    setOperator(null);
-    setWaitingForSecond(true);
+    setPrev(null);
+    setOp(null);
+    setOverwrite(true);
   };
 
-  const operatorMap = {
-    '÷': '/',
-    '×': '*',
-    '−': '-',
-    '+': '+',
+  const onBackspace = () => {
+    if (overwrite) return; // nothing to delete
+    if (display.length <= 1 || (display.length === 2 && display.startsWith('-'))) {
+      setDisplay('0');
+      setOverwrite(true);
+      return;
+    }
+    setDisplay(display.slice(0, -1));
   };
+
+  // Keyboard support
+  useEffect(() => {
+    const handler = (e) => {
+      const k = e.key;
+      if (k >= '0' && k <= '9') {
+        inputDigit(k);
+        return;
+      }
+      if (k === '.' || k === ',') {
+        inputDot();
+        return;
+      }
+      if (k === '+' || k === '=' && e.shiftKey) {
+        chooseOperator('+');
+        return;
+      }
+      if (k === '-') {
+        chooseOperator('−');
+        return;
+      }
+      if (k === '*' || k === 'x' || k === 'X') {
+        chooseOperator('×');
+        return;
+      }
+      if (k === '/' || k === '÷') {
+        chooseOperator('÷');
+        return;
+      }
+      if (k === 'Enter' || k === '=') {
+        onEquals();
+        return;
+      }
+      if (k === '%') {
+        onPercent();
+        return;
+      }
+      if (k === 'Backspace') {
+        onBackspace();
+        return;
+      }
+      if (k === 'Escape') {
+        onClear();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [display, prev, op, overwrite]);
+
+  // AC/C label logic in Russian
+  const clearLabel = display === '0' && prev == null && op == null ? 'АС' : 'С';
 
   return (
-    <div className="iphone-calculator" data-easytag="id1-src/components/Calculator.jsx">
+    <div className="iphone-calculator" data-easytag="id1-src/components/Calculator.jsx" aria-label="Калькулятор iPhone">
       <div className="calc-body" data-easytag="id2-src/components/Calculator.jsx">
         <div className="display" data-easytag="id3-src/components/Calculator.jsx">
-          <div className="display-text" data-easytag="id4-src/components/Calculator.jsx" aria-live="polite" aria-atomic="true">
+          <div className="display-text" style={{ fontSize: fontSize + 'px' }} data-easytag="id4-src/components/Calculator.jsx">
             {display}
           </div>
         </div>
-
         <div className="keys-grid" data-easytag="id5-src/components/Calculator.jsx">
-          {/* Function row */}
-          <button type="button" className="key-button variant-function" onClick={clearAll} aria-label="Очистить" data-easytag="id6-src/components/Calculator.jsx"><span>AC</span></button>
-          <button type="button" className="key-button variant-function" onClick={toggleSign} aria-label="Сменить знак" data-easytag="id7-src/components/Calculator.jsx"><span>±</span></button>
-          <button type="button" className="key-button variant-function" onClick={percent} aria-label="Процент" data-easytag="id8-src/components/Calculator.jsx"><span>%</span></button>
-          <button type="button" className="key-button variant-operator" onClick={() => chooseOperator(operatorMap['÷'])} aria-label="Деление" data-easytag="id9-src/components/Calculator.jsx"><span>÷</span></button>
+          {/* Row 1 */}
+          <button className="key-button variant-function" onClick={onClear} aria-label="Очистить" data-easytag="id6-src/components/Calculator.jsx">{clearLabel}</button>
+          <button className="key-button variant-function" onClick={onToggleSign} aria-label="Поменять знак" data-easytag="id7-src/components/Calculator.jsx">±</button>
+          <button className="key-button variant-function" onClick={onPercent} aria-label="Процент" data-easytag="id8-src/components/Calculator.jsx">%</button>
+          <button className="key-button variant-operator" onClick={() => chooseOperator('÷')} aria-label="Деление" data-easytag="id9-src/components/Calculator.jsx">÷</button>
 
-          {/* 7 8 9 */}
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(7)} aria-label="Семь" data-easytag="id10-src/components/Calculator.jsx"><span>7</span></button>
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(8)} aria-label="Восемь" data-easytag="id11-src/components/Calculator.jsx"><span>8</span></button>
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(9)} aria-label="Девять" data-easytag="id12-src/components/Calculator.jsx"><span>9</span></button>
-          <button type="button" className="key-button variant-operator" onClick={() => chooseOperator(operatorMap['×'])} aria-label="Умножение" data-easytag="id13-src/components/Calculator.jsx"><span>×</span></button>
+          {/* Row 2 */}
+          <button className="key-button variant-digit" onClick={() => inputDigit(7)} data-easytag="id10-src/components/Calculator.jsx">7</button>
+          <button className="key-button variant-digit" onClick={() => inputDigit(8)} data-easytag="id11-src/components/Calculator.jsx">8</button>
+          <button className="key-button variant-digit" onClick={() => inputDigit(9)} data-easytag="id12-src/components/Calculator.jsx">9</button>
+          <button className="key-button variant-operator" onClick={() => chooseOperator('×')} aria-label="Умножение" data-easytag="id13-src/components/Calculator.jsx">×</button>
 
-          {/* 4 5 6 */}
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(4)} aria-label="Четыре" data-easytag="id14-src/components/Calculator.jsx"><span>4</span></button>
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(5)} aria-label="Пять" data-easytag="id15-src/components/Calculator.jsx"><span>5</span></button>
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(6)} aria-label="Шесть" data-easytag="id16-src/components/Calculator.jsx"><span>6</span></button>
-          <button type="button" className="key-button variant-operator" onClick={() => chooseOperator(operatorMap['−'])} aria-label="Вычитание" data-easytag="id17-src/components/Calculator.jsx"><span>−</span></button>
+          {/* Row 3 */}
+          <button className="key-button variant-digit" onClick={() => inputDigit(4)} data-easytag="id14-src/components/Calculator.jsx">4</button>
+          <button className="key-button variant-digit" onClick={() => inputDigit(5)} data-easytag="id15-src/components/Calculator.jsx">5</button>
+          <button className="key-button variant-digit" onClick={() => inputDigit(6)} data-easytag="id16-src/components/Calculator.jsx">6</button>
+          <button className="key-button variant-operator" onClick={() => chooseOperator('−')} aria-label="Вычитание" data-easytag="id17-src/components/Calculator.jsx">−</button>
 
-          {/* 1 2 3 */}
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(1)} aria-label="Один" data-easytag="id18-src/components/Calculator.jsx"><span>1</span></button>
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(2)} aria-label="Два" data-easytag="id19-src/components/Calculator.jsx"><span>2</span></button>
-          <button type="button" className="key-button variant-digit" onClick={() => inputDigit(3)} aria-label="Три" data-easytag="id20-src/components/Calculator.jsx"><span>3</span></button>
-          <button type="button" className="key-button variant-operator" onClick={() => chooseOperator(operatorMap['+'])} aria-label="Сложение" data-easytag="id21-src/components/Calculator.jsx"><span>+</span></button>
+          {/* Row 4 */}
+          <button className="key-button variant-digit" onClick={() => inputDigit(1)} data-easytag="id18-src/components/Calculator.jsx">1</button>
+          <button className="key-button variant-digit" onClick={() => inputDigit(2)} data-easytag="id19-src/components/Calculator.jsx">2</button>
+          <button className="key-button variant-digit" onClick={() => inputDigit(3)} data-easytag="id20-src/components/Calculator.jsx">3</button>
+          <button className="key-button variant-operator" onClick={() => chooseOperator('+')} aria-label="Сложение" data-easytag="id21-src/components/Calculator.jsx">+</button>
 
-          {/* 0 . = */}
-          <button type="button" className="key-button variant-digit zero-span" onClick={() => inputDigit(0)} aria-label="Ноль" data-easytag="id22-src/components/Calculator.jsx"><span>0</span></button>
-          <button type="button" className="key-button variant-digit" onClick={inputDecimal} aria-label="Десятичная точка" data-easytag="id23-src/components/Calculator.jsx"><span>.</span></button>
-          <button type="button" className="key-button variant-operator" onClick={equals} aria-label="Равно" data-easytag="id24-src/components/Calculator.jsx"><span>=</span></button>
+          {/* Row 5 */}
+          <button className="key-button variant-digit zero-span" onClick={() => inputDigit(0)} data-easytag="id22-src/components/Calculator.jsx">0</button>
+          <button className="key-button variant-digit" onClick={inputDot} data-easytag="id23-src/components/Calculator.jsx">.</button>
+          <button className="key-button variant-operator" onClick={onEquals} aria-label="Равно" data-easytag="id24-src/components/Calculator.jsx">=</button>
         </div>
       </div>
     </div>
   );
 }
-
-export default Calculator;
