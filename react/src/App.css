@@ -36,3 +36,86 @@
     transform: rotate(360deg);
   }
 }
+
+/* iPhone-like calculator styles */
+.iphone-calculator {
+  min-height: 100vh;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calc-body {
+  width: 360px;
+  max-width: 92vw;
+}
+
+.display {
+  color: #fff;
+  text-align: right;
+  padding: 24px 16px 8px;
+  min-height: 96px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.display-text {
+  line-height: 1;
+  font-weight: 300;
+  word-break: break-all;
+}
+
+.keys-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 12px 16px 24px;
+}
+
+.key-button {
+  height: 64px;
+  width: 100%;
+  border: none;
+  border-radius: 32px;
+  font-size: 24px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+.key-button:active {
+  filter: brightness(1.1);
+}
+
+.variant-digit {
+  background: #333333;
+  color: #ffffff;
+}
+
+.variant-function {
+  background: #a5a5a5;
+  color: #000000;
+}
+
+.variant-operator {
+  background: #ff9f0a;
+  color: #ffffff;
+}
+
+.zero-span {
+  grid-column: span 2;
+}
+
+@media (max-width: 420px) {
+  .key-button {
+    height: 60px;
+    border-radius: 30px;
+    font-size: 22px;
+  }
+  .display {
+    min-height: 88px;
+    padding: 20px 16px 8px;
+  }
+}
