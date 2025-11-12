@@ -5,6 +5,9 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #000; /* Match calculator background to prevent gaps near safe areas */
+  color: #ffffff;
+  -webkit-text-size-adjust: 100%;
 }
 
 code {

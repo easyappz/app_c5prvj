@@ -1,0 +1,128 @@
+:root {
+  --bg: #000000;
+  --digit: #333333;
+  --function: #a5a5a5;
+  --operator: #ff9f0a;
+  --text-light: #ffffff;
+  --text-dark: #000000;
+  --gap: clamp(8px, 2.8vw, 12px);
+  --outer-pad: clamp(8px, 3vw, 16px);
+  --radius: 9999px;
+  --shadow: 0 2px 0 rgba(0,0,0,0.25), 0 6px 18px rgba(0,0,0,0.35);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.05);
+  --display-font: clamp(28px, 10vw, 64px);
+  --button-font: clamp(16px, 5vw, 32px);
+}
+
+/* Root wrapper */
+.iphone-calculator {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--text-light);
+  padding: calc(env(safe-area-inset-top) + var(--outer-pad)) calc(env(safe-area-inset-right) + var(--outer-pad)) calc(env(safe-area-inset-bottom) + var(--outer-pad)) calc(env(safe-area-inset-left) + var(--outer-pad));
+}
+
+/* Phone body wrapper to keep iPhone-like proportions */
+.calc-body {
+  width: clamp(280px, 92vw, 420px);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--gap);
+}
+
+/* Display area */
+.display {
+  text-align: right;
+  padding: clamp(12px, 4vw, 20px) clamp(12px, 4vw, 20px) 0;
+  min-height: clamp(80px, 22vw, 120px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.display-text {
+  font-weight: 300;
+  line-height: 1.05;
+  font-size: var(--display-font);
+  letter-spacing: 0.5px;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* Grid of keys */
+.keys-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+  padding: 0 clamp(12px, 4vw, 20px) clamp(12px, 4vw, 22px);
+}
+
+/* Base button */
+.key-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: none;
+  border-radius: var(--radius);
+  font-size: var(--button-font);
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  touch-action: manipulation;
+  box-shadow: var(--shadow), var(--shadow-inset);
+  transition: transform 0.05s ease, opacity 0.05s ease, filter 0.15s ease;
+}
+
+.key-button:active {
+  opacity: 0.85;
+  transform: translateY(1px);
+  filter: brightness(1.05);
+}
+
+/* Variants */
+.variant-digit {
+  background: var(--digit);
+  color: var(--text-light);
+}
+
+.variant-function {
+  background: var(--function);
+  color: var(--text-dark);
+}
+
+.variant-operator {
+  background: var(--operator);
+  color: var(--text-light);
+}
+
+/* Zero spans two columns and keeps pill shape */
+.zero-span {
+  grid-column: span 2;
+  aspect-ratio: 2 / 1;
+  justify-content: flex-start;
+  padding-left: clamp(18px, 5vw, 26px);
+}
+
+/* Ensure buttons text doesn't wrap */
+.key-button > span {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Small refinements for very narrow screens */
+@media (max-width: 360px) {
+  .display-text {
+    letter-spacing: 0.25px;
+  }
+}
