@@ -21,6 +21,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/Message'
           description: ''
+  /api/health:
+    get:
+      summary: Health check
+      tags:
+      - api
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                required:
+                - status
 components:
   schemas:
     Message:
