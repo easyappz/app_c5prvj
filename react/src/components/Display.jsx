@@ -41,7 +41,7 @@ function Display({ value }) {
 
   return (
     <div data-easytag="id2-src/components/Display.jsx" className="display">
-      <div className="display-text" style={{ fontSize: `${fontSize}px` }}>{formatted}</div>
+      <div className="display-text" style={{ fontSize: `${fontSize}px` }} aria-live="polite" aria-atomic="true">{formatted}</div>
     </div>
   );
 }

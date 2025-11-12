@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Display from './Display.jsx';
 import KeyButton from './KeyButton.jsx';
 
@@ -48,7 +48,10 @@ function Calculator() {
   const [operator, setOperator] = useState(null); // '+', '-', '×', '÷' | null
   const [overwrite, setOverwrite] = useState(true);
 
-  const isAC = useMemo(() => currentValue === '0' && previousValue === null && operator === null, [currentValue, previousValue, operator]);
+  const isAC = useMemo(
+    () => currentValue === '0' && previousValue === null && operator === null,
+    [currentValue, previousValue, operator]
+  );
   const clearLabel = isAC ? 'AC' : 'C';
 
   function inputDigit(d) {
@@ -120,7 +123,7 @@ function Calculator() {
     if (operator === null || previousValue === null) return;
     const result = operate(previousValue, currentValue, operator);
     setCurrentValue(result);
-    setPreviousValue(result === 'Ошибка' ? null : null);
+    setPreviousValue(null);
     setOperator(null);
     setOverwrite(true);
   }
@@ -150,17 +153,73 @@ function Calculator() {
     setOverwrite(false);
   }
 
+  function clearAll() {
+    setCurrentValue('0');
+    setPreviousValue(null);
+    setOperator(null);
+    setOverwrite(true);
+  }
+
+  function clearEntry() {
+    setCurrentValue('0');
+    setOverwrite(true);
+  }
+
   function clear() {
     if (isAC) {
-      setCurrentValue('0');
-      setPreviousValue(null);
-      setOperator(null);
-      setOverwrite(true);
+      clearAll();
     } else {
-      setCurrentValue('0');
-      setOverwrite(true);
+      clearEntry();
     }
   }
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      const k = e.key;
+      let handled = false;
+
+      if (k >= '0' && k <= '9') {
+        inputDigit(k);
+        handled = true;
+      } else if (k === '.' || k === ',') {
+        inputDot();
+        handled = true;
+      } else if (k === '+' || k === '-') {
+        chooseOperator(k);
+        handled = true;
+      } else if (k === '*') {
+        chooseOperator('×');
+        handled = true;
+      } else if (k === '/') {
+        chooseOperator('÷');
+        handled = true;
+      } else if (k === 'Enter' || k === '=') {
+        evaluate();
+        handled = true;
+      } else if (k === 'Escape') {
+        clearAll();
+        handled = true;
+      } else if (k === 'Backspace') {
+        clearEntry();
+        handled = true;
+      } else if (k === '%') {
+        percent();
+        handled = true;
+      } else if (k === 's' || k === 'S') {
+        toggleSign();
+        handled = true;
+      }
+
+      if (handled) {
+        e.preventDefault();
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [currentValue, previousValue, operator, overwrite, isAC]);
 
   return (
     <div data-easytag="id1-src/components/Calculator.jsx" className="iphone-calculator">
